@@ -15,7 +15,7 @@ public class GitHubApiService {
     private static final String BASE_URL = "https://api.github.com";
     private static final String REPO_OWNER = "Santiors";
     private static final String REPO_NAME = "Prodly-Test-Task";
-    private static final String AUTH_TOKEN = "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";
+    private static final String AUTH_TOKEN = "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";
     private static final String CSV_FILE_PATH = "src/main/resources/TestData.csv";
 
     public static void insertRecordsToCSV(List<Company> companies) {
@@ -36,20 +36,19 @@ public class GitHubApiService {
                 return;
             }
 
-            String existingFileContent = existingFileResponse.jsonPath().getString("content");
             String existingFileSha = existingFileResponse.jsonPath().getString("sha");
 
             // Convert the list of companies to CSV content
             String csvContent = convertToCSV(companies);
 
             // Encode the new CSV content in Base64
-            String encodedContent = encodeBase64(csvContent);
+            String encodedContent = Base64.getEncoder().encodeToString(csvContent.getBytes());
 
             // Prepare the Rest Assured request to update the CSV file
             RequestSpecification request = RestAssured.given()
                     .baseUri(BASE_URL)
                     .header("Authorization", "token " + AUTH_TOKEN)
-                    .contentType(ContentType.JSON)
+                    .contentType("application/json")
                     .body(buildRequestBody(encodedContent, existingFileSha));
 
             // Make a PUT request to update the CSV file
@@ -61,11 +60,13 @@ public class GitHubApiService {
                 System.out.println("CSV file updated successfully.");
             } else {
                 System.err.println("Failed to update CSV file. Status code: " + statusCode);
+                System.err.println("Response body: " + updateResponse.getBody().asString());
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
 
     public static void mergeMainIntoSecondBranch() {
