@@ -25,7 +25,7 @@ public class TestClass {
         GitHubApiService.mergeMainIntoSecondBranch();
 //
         // Get records from the CSV in the second branch
-//        List<Company> secondBranchRecords = GitHubApiService.getRecordsFromSecondBranchCSV();
+        List<Company> secondBranchRecords = GitHubApiService.getRecordsFromSecondBranchCSV();
 //
 //        // Assert that both files contain the same number of records
 //        Assertions.assertEquals(companies.size(), secondBranchRecords.size());

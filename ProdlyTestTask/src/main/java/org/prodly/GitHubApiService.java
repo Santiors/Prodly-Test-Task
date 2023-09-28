@@ -75,10 +75,10 @@ public class GitHubApiService {
             // Prepare the GitHub API URL for merging 'main' into 'second' branch
             String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/merges";
 
-            // Define the merge request body (specify 'main' as the base branch and 'second' as the head branch)
+            // Define the merge request body (specify 'main' as the base branch and 'SecondBranch' as the head branch)
             String requestBody = "{\n" +
                     "  \"base\": \"main\",\n" +
-                    "  \"head\": \"second\"\n" +
+                    "  \"head\": \"SecondBranch\"\n" +
                     "}";
 
             // Prepare the Rest Assured request
@@ -93,7 +93,7 @@ public class GitHubApiService {
 
             // Handle the response
             int statusCode = response.getStatusCode();
-            if (statusCode == 201) {
+            if (statusCode == 201 || statusCode == 204) {
                 System.out.println("Merge successful.");
             } else {
                 System.err.println("Merge failed. Status code: " + statusCode);
@@ -105,24 +105,30 @@ public class GitHubApiService {
     }
 
     public static List<Company> getRecordsFromSecondBranchCSV() throws IOException {
-        // Prepare the GitHub API URL for fetching the raw CSV file from the 'second' branch
-        String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + CSV_FILE_PATH + "?ref=second";
+        try {
+            // Prepare the GitHub API URL for fetching the raw CSV file from the 'second' branch
+            String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + CSV_FILE_PATH + "?ref=second";
 
-        // Prepare the Rest Assured request
-        RequestSpecification request = RestAssured.given()
-                .baseUri(BASE_URL)
-                .header("Authorization", "token " + AUTH_TOKEN)
-                .accept(ContentType.JSON);
+            // Prepare the Rest Assured request
+            RequestSpecification request = RestAssured.given()
+                    .baseUri(BASE_URL)
+                    .header("Authorization", "token " + AUTH_TOKEN)
+                    .accept(ContentType.JSON);
 
-        // Make a GET request to retrieve the raw CSV content
-        Response response = request.get(apiUrl);
+            // Make a GET request to retrieve the raw CSV content
+            Response response = request.get(apiUrl);
 
-        // Handle the response and parse CSV content into Company objects
-        if (response.getStatusCode() == 200) {
-            String csvContent = response.jsonPath().get("content");
-            return parseCSV(csvContent);
-        } else {
-            System.err.println("Failed to fetch CSV content. Status code: " + response.getStatusCode());
+            // Handle the response
+            int statusCode = response.getStatusCode();
+            if (statusCode == 200) {
+                String csvContent = response.jsonPath().get("content");
+                return parseCSV(csvContent);
+            } else {
+                System.err.println("Failed to fetch CSV content. Status code: " + statusCode);
+                return new ArrayList<>(); // Return an empty list or handle the error accordingly
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
             return new ArrayList<>(); // Return an empty list or handle the error accordingly
         }
     }
