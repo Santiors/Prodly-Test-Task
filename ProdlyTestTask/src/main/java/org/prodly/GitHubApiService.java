@@ -16,7 +16,7 @@ public class GitHubApiService {
     private static final String REPO_OWNER = "Santiors";
     private static final String REPO_NAME = "Prodly-Test-Task";
     private static final String AUTH_TOKEN = "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";
-    private static final String CSV_FILE_PATH = "src/main/resources/TestData.csv";
+    private static final String CSV_FILE_PATH = "ProdlyTestTask/src/main/resources/TestData.csv";
 
     public static void insertRecordsToCSV(List<Company> companies) {
         try {
