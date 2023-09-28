@@ -28,7 +28,7 @@ public class TestClass {
         List<Company> secondBranchRecords = GitHubApiService.getRecordsFromSecondBranchCSV();
 //
 //        // Assert that both files contain the same number of records
-//        Assertions.assertEquals(companies.size(), secondBranchRecords.size());
+        Assertions.assertEquals(companies.size(), secondBranchRecords.size());
 //
 //        // Assert that all fields contain the same values in both files
 //        for (int i = 0; i < companies.size(); i++) {

@@ -9,9 +9,7 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.http.ContentType;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 
 public class GitHubApiService {
     private static final String BASE_URL = "https://api.github.com";
@@ -75,10 +73,10 @@ public class GitHubApiService {
             // Prepare the GitHub API URL for merging 'main' into 'second' branch
             String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/merges";
 
-            // Define the merge request body (specify 'main' as the base branch and 'SecondBranch' as the head branch)
+            // Define the merge request body (specify 'main' as the base branch and 'second' as the head branch)
             String requestBody = "{\n" +
                     "  \"base\": \"main\",\n" +
-                    "  \"head\": \"SecondBranch\"\n" +
+                    "  \"head\": \"second\"\n" +
                     "}";
 
             // Prepare the Rest Assured request
@@ -106,7 +104,7 @@ public class GitHubApiService {
 
     public static List<Company> getRecordsFromSecondBranchCSV() throws IOException {
         try {
-            // Construct the GitHub API URL for fetching the raw CSV file from the 'SecondBranch' branch
+            // Construct the GitHub API URL for fetching the raw CSV file from the 'second' branch
             String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + CSV_FILE_PATH;
 
             // Prepare the Rest Assured request
@@ -116,7 +114,7 @@ public class GitHubApiService {
                     .accept(ContentType.JSON);
 
             // Specify the branch using the "ref" query parameter
-            request.queryParam("ref", "SecondBranch");
+            request.queryParam("ref", "second");
 
             // Make a GET request to retrieve the raw CSV content
             Response response = request.get();
@@ -155,16 +153,17 @@ public class GitHubApiService {
         }
     }
 
-    private static List<Company> parseCSV(String csvContent) throws IOException {
+    public static List<Company> parseCSV(String csvContent) throws IOException {
         List<Company> companies = new ArrayList<>();
 
-        // Use Apache Commons CSV to parse CSV content
         try (Reader reader = new StringReader(csvContent);
-             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT
-                     .withFirstRecordAsHeader()
-                     .withHeader("Name", "NumberOfEmployees", "NumberOfCustomers", "Country"))) {
+             CSVParser csvParser = CSVParser.parse(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
 
-            // Iterate through CSV records and convert them to Company objects
+            Map<String, Integer> headerMap = csvParser.getHeaderMap();
+            for (String header : headerMap.keySet()) {
+                System.out.println("Header: " + header);
+            }
+
             for (CSVRecord csvRecord : csvParser) {
                 String name = csvRecord.get("Name");
                 int numberOfEmployees = Integer.parseInt(csvRecord.get("NumberOfEmployees"));
@@ -177,6 +176,14 @@ public class GitHubApiService {
         }
 
         return companies;
+    }
+    // Helper method to check if headers match the expected format
+    private static boolean areHeadersValid(String[] headers) {
+        return headers.length == 4 &&
+                "Name".equals(headers[0]) &&
+                "NumberOfEmployees".equals(headers[1]) &&
+                "NumberOfCustomers".equals(headers[2]) &&
+                "Country".equals(headers[3]);
     }
 
     private static String buildRequestBody(String encodedContent, String existingFileSha) {
