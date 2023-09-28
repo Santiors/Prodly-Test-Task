@@ -106,17 +106,20 @@ public class GitHubApiService {
 
     public static List<Company> getRecordsFromSecondBranchCSV() throws IOException {
         try {
-            // Prepare the GitHub API URL for fetching the raw CSV file from the 'second' branch
-            String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + CSV_FILE_PATH + "?ref=second";
+            // Construct the GitHub API URL for fetching the raw CSV file from the 'SecondBranch' branch
+            String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + CSV_FILE_PATH;
 
             // Prepare the Rest Assured request
             RequestSpecification request = RestAssured.given()
-                    .baseUri(BASE_URL)
+                    .baseUri(apiUrl) // Set the base URL without specifying the branch in the URL
                     .header("Authorization", "token " + AUTH_TOKEN)
                     .accept(ContentType.JSON);
 
+            // Specify the branch using the "ref" query parameter
+            request.queryParam("ref", "SecondBranch");
+
             // Make a GET request to retrieve the raw CSV content
-            Response response = request.get(apiUrl);
+            Response response = request.get();
 
             // Handle the response
             int statusCode = response.getStatusCode();
@@ -125,6 +128,7 @@ public class GitHubApiService {
                 return parseCSV(csvContent);
             } else {
                 System.err.println("Failed to fetch CSV content. Status code: " + statusCode);
+                System.err.println(response.getBody().asString());
                 return new ArrayList<>(); // Return an empty list or handle the error accordingly
             }
         } catch (Exception e) {
