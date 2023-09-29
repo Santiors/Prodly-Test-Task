@@ -9,13 +9,14 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.http.ContentType;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class GitHubApiService {
     private static final String BASE_URL = "https://api.github.com";
     private static final String REPO_OWNER = "Santiors";
     private static final String REPO_NAME = "Prodly-Test-Task";
-    private static final String AUTH_TOKEN = "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";
+    private static final String AUTH_TOKEN = "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";
     private static final String CSV_FILE_PATH = "ProdlyTestTask/src/main/resources/TestData.csv";
 
     public static void insertRecordsToCSV(List<Company> companies) {
@@ -67,17 +68,16 @@ public class GitHubApiService {
         }
     }
 
-
-
     public static void mergeMainIntoSecondBranch() {
         try {
-            // Prepare the GitHub API URL for merging 'main' into 'second' branch
+            // Prepare the GitHub API URL for merging 'main' into 'testSecond' branch
             String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/merges";
 
-            // Define the merge request body (specify 'main' as the base branch and 'second' as the head branch)
+            // Define the merge request body
             String requestBody = "{\n" +
-                    "  \"base\": \"main\",\n" +
-                    "  \"head\": \"second\"\n" +
+                    "  \"base\": \"testSecond\",\n" +
+                    "  \"head\": \"main\",\n" +
+                    "  \"commit_message\": \"Merge main into second \"\n" +
                     "}";
 
             // Prepare the Rest Assured request
@@ -103,9 +103,9 @@ public class GitHubApiService {
         }
     }
 
-    public static List<Company> getRecordsFromSecondBranchCSV() throws IOException {
+    public static List<Company> getRecordsFromSecondBranchCSV() {
         try {
-            // Construct the GitHub API URL for fetching the raw CSV file from the 'second' branch
+            // Construct the GitHub API URL for fetching the raw CSV file from the 'testSecond' branch
             String apiUrl = BASE_URL + "/repos/" + REPO_OWNER + "/" + REPO_NAME + "/contents/" + CSV_FILE_PATH;
 
             // Prepare the Rest Assured request
@@ -115,7 +115,7 @@ public class GitHubApiService {
                     .accept(ContentType.JSON);
 
             // Specify the branch using the "ref" query parameter
-            request.queryParam("ref", "second");
+            request.queryParam("ref", "testSecond");
 
             // Make a GET request to retrieve the raw CSV content
             Response response = request.get();
@@ -124,7 +124,8 @@ public class GitHubApiService {
             int statusCode = response.getStatusCode();
             if (statusCode == 200) {
                 String csvContent = response.jsonPath().get("content");
-                return parseCSV(csvContent);
+                csvContent = csvContent.replace("\n", "").replace(" ", "");
+                return parseBase64EncodedCSV(csvContent);
             } else {
                 System.err.println("Failed to fetch CSV content. Status code: " + statusCode);
                 System.err.println(response.getBody().asString());
@@ -154,37 +155,36 @@ public class GitHubApiService {
         }
     }
 
-    public static List<Company> parseCSV(String csvContent) throws IOException {
+    public static List<Company> parseBase64EncodedCSV(String base64EncodedCSV) {
         List<Company> companies = new ArrayList<>();
 
-        try (Reader reader = new StringReader(csvContent);
-             CSVParser csvParser = CSVParser.parse(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader())) {
+        try {
+            // Decode the base64-encoded CSV content
+            byte[] decodedBytes = Base64.getDecoder().decode(base64EncodedCSV);
 
-            Map<String, Integer> headerMap = csvParser.getHeaderMap();
-            for (String header : headerMap.keySet()) {
-                System.out.println("Header: " + header);
+            // Convert the decoded bytes to a ByteArrayInputStream
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(decodedBytes);
+
+            // Define the CSV format
+            CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
+
+            try (CSVParser csvParser = CSVParser.parse(byteArrayInputStream, StandardCharsets.UTF_8, csvFormat)) {
+                // Iterate through CSV records and convert them to Company objects
+                for (CSVRecord csvRecord : csvParser) {
+                    String name = csvRecord.get("Name");
+                    int numberOfEmployees = Integer.parseInt(csvRecord.get("NumberOfEmployees"));
+                    int numberOfCustomers = Integer.parseInt(csvRecord.get("NumberOfCustomers"));
+                    String country = csvRecord.get("Country");
+
+                    Company company = new Company(name, numberOfEmployees, numberOfCustomers, country);
+                    companies.add(company);
+                }
             }
-
-            for (CSVRecord csvRecord : csvParser) {
-                String name = csvRecord.get("Name");
-                int numberOfEmployees = Integer.parseInt(csvRecord.get("NumberOfEmployees"));
-                int numberOfCustomers = Integer.parseInt(csvRecord.get("NumberOfCustomers"));
-                String country = csvRecord.get("Country");
-
-                Company company = new Company(name, numberOfEmployees, numberOfCustomers, country);
-                companies.add(company);
-            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         return companies;
-    }
-    // Helper method to check if headers match the expected format
-    private static boolean areHeadersValid(String[] headers) {
-        return headers.length == 4 &&
-                "Name".equals(headers[0]) &&
-                "NumberOfEmployees".equals(headers[1]) &&
-                "NumberOfCustomers".equals(headers[2]) &&
-                "Country".equals(headers[3]);
     }
 
     private static String buildRequestBody(String encodedContent, String existingFileSha) {
@@ -194,10 +194,5 @@ public class GitHubApiService {
                 "  \"sha\": \"" + existingFileSha + "\"\n" +
                 "}";
     }
-
-    private static String encodeBase64(String content) {
-        return java.util.Base64.getEncoder().encodeToString(content.getBytes());
-    }
-
 
 }

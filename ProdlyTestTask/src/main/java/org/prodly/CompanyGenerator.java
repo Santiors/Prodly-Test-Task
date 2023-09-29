@@ -23,13 +23,13 @@ public class CompanyGenerator {
         return companies;
     }
 
-    // Helper method to generate a random number within a specified range
+    // Method to generate a random number within a specified range
     private static int getRandomNumber(int min, int max) {
         Random random = new Random();
         return random.nextInt(max - min + 1) + min;
     }
 
-    // Helper method to get a random country (you can add more countries as needed)
+    // Method to get a random country (you can add more countries as needed)
     private static String getRandomCountry() {
         String[] countries = {"USA", "Canada", "UK", "Germany", "France", "Australia", "Japan"};
         Random random = new Random();
